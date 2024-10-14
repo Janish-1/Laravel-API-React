@@ -1,0 +1,12 @@
+1.Create React Project
+    npx create-react-app react-frontend
+2.Install React Router for Navigation
+    npm install react-router-dom
+3.Create Login Page
+    Refer to Login.js
+4.Create Register Page
+    Refer to Register.js
+5.Create Dashboard Page
+    Refer to Dashboard.js
+6.Create App Page for Router
+    Refer to App.js

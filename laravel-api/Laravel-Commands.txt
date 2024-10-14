@@ -1,0 +1,116 @@
+1.Create a Project
+    composer create-project --prefer-dist laravel/laravel laravel-api
+2.Create database
+    php artisan migrate
+3.Add Laravel API Sanctum
+    php artisan install:api
+5.Migrate Database
+    php artisan migrate
+6.Add Fortify
+    composer require laravel/fortify
+7.Added Laravel Fortify
+    php artisan vendor:publish --provider="Laravel\Fortify\FortifyServiceProvider"
+8.Migrate Update Database
+    php artisan migrate
+9.Create Auth Controllers
+    php artisan make:controller AuthController
+10.AuthController file
+    public function register(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        // Create a new user
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        // Generate a token for the newly registered user
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Return the access token with a success message
+        return response()->json([
+            'message' => 'User registered successfully!',
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+        ], 201);
+    }
+
+    // User login function
+    public function login(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
+
+        // Attempt to log the user in
+        if (!Auth::attempt($validated)) {
+            throw ValidationException::withMessages([
+                'email' => ['The provided credentials are incorrect.'],
+            ]);
+        }
+
+        // Get the authenticated user
+        $user = Auth::user();
+
+        // Generate a new token for the user
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Return the access token
+        return response()->json([
+            'message' => 'Login successful!',
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+        ], 200);
+    }
+    // User logout function
+    public function logout(Request $request)
+    {
+        // Revoke the user's current token
+        $request->user()->currentAccessToken()->delete();
+
+        // Return a success message
+        return response()->json([
+            'message' => 'Logged out successfully!',
+        ], 200);
+    }
+11. API Routes
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+12. Migrate Database
+    php artisan serve
+13. Add Authenticated Routes
+    public function getUser(Request $request)
+    {
+        // Return the authenticated user's details
+        return response()->json($request->user(), 200);
+    }
+    // Function to delete the authenticated user
+    public function deleteUser(Request $request)
+    {
+        $user = $request->user();
+
+        // Revoke all tokens associated with the user
+        $user->tokens()->delete();
+
+        // Delete the user from the database
+        $user->delete();
+
+        // Return a success message
+        return response()->json([
+            'message' => 'User deleted successfully!',
+        ], 200);
+    }
+14.Add Protected Routes
+    // Protected routes for authenticated users
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/user', [AuthController::class, 'getUser']);  // Get authenticated user
+        Route::delete('/user', [AuthController::class, 'deleteUser']);  // Delete authenticated user
+    });
